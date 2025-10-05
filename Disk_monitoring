@@ -1,0 +1,40 @@
+#!/bin/bash
+# Disk monitor script with email test and logging
+
+THRESHOLD=50
+ALERT_EMAIL="daftar.home@gmail.com"
+LOG_FILE="/home/username/disk_monitor.log"
+
+#Date now
+now=$(date '+%Y-%m-%d %H:%M:%S')
+echo "$now - Starting disk monitor" >> "$LOG_FILE" 2>&1
+
+# ---------- Usage percentage----------
+usage=$(df / --output=pcent 2>/dev/null | tail -n 1 | tr -dc '0-9')
+if [ -z "$usage" ]; then
+    usage=$(df -h / | awk 'NR==2 {gsub(/%/,"",$5); print $5}')
+fi
+
+# Check that the correct number is obtained.
+if ! [[ "$usage" =~ ^[0-9]+$ ]]; then
+    echo "$now - ERROR: Couldn't parse disk usage. Raw='$usage'" >> "$LOG_FILE" 2>&1
+    exit 1
+fi
+
+echo "$now - Disk usage: $usage%" >> "$LOG_FILE" 2>&1
+
+# ---------- Test send Email----------
+echo "This is a test email from Disk Monitor script" | /usr/bin/mail -s "Disk Monitor Test Email" "$ALERT_EMAIL" 2>>"$LOG_FILE"
+if [ $? -ne 0 ]; then
+    echo "$now - ERROR: Could not send test email to $ALERT_EMAIL" >> "$LOG_FILE" 2>&1
+fi
+
+# ---------- Check disk usage----------
+if [ "$usage" -ge "$THRESHOLD" ]; then
+    echo "$now - ALERT: Disk usage is $usage%" >> "$LOG_FILE" 2>&1
+    echo "$now - ALERT: Disk usage is $usage%" | /usr/bin/mail -s "Disk Alert" "$ALERT_EMAIL" 2>>"$LOG_FILE"
+else
+    echo "$now - OK: Disk usage is $usage%" >> "$LOG_FILE" 2>&1
+fi
+
+echo "$now - Disk monitor finished" >> "$LOG_FILE" 2>&1
