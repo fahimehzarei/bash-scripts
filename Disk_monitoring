@@ -2,7 +2,7 @@
 # Disk monitor script with email test and logging
 
 THRESHOLD=50
-ALERT_EMAIL="daftar.home@gmail.com"
+ALERT_EMAIL=""
 LOG_FILE="/home/username/disk_monitor.log"
 
 #Date now
