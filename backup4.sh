@@ -6,12 +6,12 @@
 # ==========================
 
 # === Configuration ===
-SOURCE_DIR="/home/vagrant/testdata"       # Folder to back up
-BACKUP_DIR="/home/vagrant/backups"        # Local backup folder
+SOURCE_DIR="/home/username/testdata"       # Folder to back up
+BACKUP_DIR="/home/username/backups"        # Local backup folder
 REMOTE_USER="vagrant"
 REMOTE_HOST="255.255.255.255"               # Destination server (Server B)
-REMOTE_DIR="/home/vagrant/received_backup"
-LOG_FILE="/home/vagrant/backup.log"
+REMOTE_DIR="/home/username/received_backup"
+LOG_FILE="/home/username/backup.log"
 
 # === Timestamp ===
 DATE=$(date +'%Y-%m-%d_%H-%M-%S')
