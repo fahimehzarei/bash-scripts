@@ -1,5 +1,5 @@
 # Disk Monitor Configuration
-
+#disk_monitor.conf
 # Alarm threshold percentage
 THRESHOLD=22
 
