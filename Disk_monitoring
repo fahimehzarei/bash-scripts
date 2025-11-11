@@ -1,40 +1,94 @@
-#!/bin/bash
-# Disk monitor script with email test and logging
+# Disk Monitor Configuration
 
-THRESHOLD=50
-ALERT_EMAIL=""
+# Alarm threshold percentage
+THRESHOLD=22
+
+# Email Alert 
+ALERT_EMAIL="you@gmail.com"
+
+# Log file path
 LOG_FILE="/home/username/disk_monitor.log"
 
-#Date now
-now=$(date '+%Y-%m-%d %H:%M:%S')
-echo "$now - Starting disk monitor" >> "$LOG_FILE" 2>&1
+# Previous status file path
+STATE_FILE="/home/username/disk_monitor.state"
 
-# ---------- Usage percentage----------
+---------------------------------------------------------------------------------
+#!/bin/bash
+# Disk monitor script - color terminal + log + email
+
+# Load configuration
+CONFIG_FILE="/home/username/disk_monitor.conf"
+if [ ! -f "$CONFIG_FILE" ]; then
+    echo -e "\e[31mConfiguration file not found: $CONFIG_FILE\e[0m"
+    exit 1
+fi
+source "$CONFIG_FILE"
+
+# Colors for terminal
+RED='\e[31m'
+GREEN='\e[32m'
+YELLOW='\e[33m'
+NC='\e[0m'  # No Color
+
+# Current date & time
+now=$(date '+%Y-%m-%d %H:%M:%S')
+
+# Helper function to log messages and show in terminal
+log() {
+    local msg="$1"
+    local color="$2"
+    # Display in terminal with color
+    if [ -z "$color" ]; then
+        echo "$now - $msg"
+    else
+        echo -e "$now - ${color}$msg${NC}"
+    fi
+    # Append to log file without color codes
+    echo "$now - $msg" >> "$LOG_FILE" 2>&1
+}
+
+log "Starting disk monitor" "$YELLOW"
+
+# ---------- Get disk usage ----------
 usage=$(df / --output=pcent 2>/dev/null | tail -n 1 | tr -dc '0-9')
 if [ -z "$usage" ]; then
     usage=$(df -h / | awk 'NR==2 {gsub(/%/,"",$5); print $5}')
 fi
 
-# Check that the correct number is obtained.
+# Validate usage
 if ! [[ "$usage" =~ ^[0-9]+$ ]]; then
-    echo "$now - ERROR: Couldn't parse disk usage. Raw='$usage'" >> "$LOG_FILE" 2>&1
+    log "ERROR: Couldn't parse disk usage. Raw='$usage'" "$RED"
     exit 1
 fi
 
-echo "$now - Disk usage: $usage%" >> "$LOG_FILE" 2>&1
+log "Disk usage: $usage%"
 
-# ---------- Test send Email----------
-echo "This is a test email from Disk Monitor script" | /usr/bin/mail -s "Disk Monitor Test Email" "$ALERT_EMAIL" 2>>"$LOG_FILE"
-if [ $? -ne 0 ]; then
-    echo "$now - ERROR: Could not send test email to $ALERT_EMAIL" >> "$LOG_FILE" 2>&1
+# ---------- Load previous state ----------
+previous_state="OK"
+if [ -f "$STATE_FILE" ]; then
+    previous_state=$(cat "$STATE_FILE")
 fi
 
-# ---------- Check disk usage----------
+# ---------- Determine current state ----------
+current_state="OK"
 if [ "$usage" -ge "$THRESHOLD" ]; then
-    echo "$now - ALERT: Disk usage is $usage%" >> "$LOG_FILE" 2>&1
-    echo "$now - ALERT: Disk usage is $usage%" | /usr/bin/mail -s "Disk Alert" "$ALERT_EMAIL" 2>>"$LOG_FILE"
-else
-    echo "$now - OK: Disk usage is $usage%" >> "$LOG_FILE" 2>&1
+    current_state="ALERT"
 fi
 
-echo "$now - Disk monitor finished" >> "$LOG_FILE" 2>&1
+# ---------- Send email only if state changed ----------
+if [ "$current_state" != "$previous_state" ]; then
+    if [ "$current_state" == "ALERT" ]; then
+        log "ALERT: Disk usage is $usage%" "$RED"
+        echo "$now - ALERT: Disk usage is $usage%" | /usr/bin/mail -s "Disk Alert" "$ALERT_EMAIL" 2>>"$LOG_FILE"
+    else
+        log "OK: Disk usage back to normal ($usage%)" "$GREEN"
+        echo "$now - OK: Disk usage back to normal ($usage%)" | /usr/bin/mail -s "Disk OK" "$ALERT_EMAIL" 2>>"$LOG_FILE"
+    fi
+else
+    log "No change in disk status ($current_state, $usage%)" "$YELLOW"
+fi
+
+# ---------- Save current state ----------
+echo "$current_state" > "$STATE_FILE"
+
+log "Disk monitor finished" "$YELLOW"
