@@ -1,6 +1,6 @@
 #!/bin/bash
 logfile="/var/log/auth.log"
-senderEmail="daftar.home@gmail.com"
+senderEmail="yourEmail@gmail.com"
 nowDate=$(date '+%Y-%m-%d %H:%M:%S')
 
 # check logfile to exist
@@ -17,4 +17,5 @@ if [ $failcount -gt 0 ]; then
     echo "$nowDate : $failcount failed login attempts" | mail -s "Failed Login Alert" $senderEmail
 else
     echo "$nowDate : no failed login attempts"
+
 fi
